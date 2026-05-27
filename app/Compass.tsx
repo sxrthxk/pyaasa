@@ -7,7 +7,9 @@ import type { ShopFeature, NearestResult } from "./geo";
 // Movement gate: don't recompute nearest unless the user moved more than this.
 const MOVE_GATE_M = 10;
 // Low-pass smoothing factor for the heading (0..1, higher = snappier/jitterier).
-const HEADING_SMOOTH = 0.15;
+// Keep this low: 0.05 passes only ~5% of each raw reading through per sensor tick,
+// which kills the 1-2° iOS sensor noise without noticeably lagging the display.
+const HEADING_SMOOTH = 0.05;
 
 interface Pos {
   lat: number;
@@ -45,7 +47,13 @@ export default function Compass() {
   const [needsTap, setNeedsTap] = useState(false);
 
   const lastCalcPos = useRef<Pos | null>(null);
-  const smoothedHeading = useRef<number | null>(null);
+  // Cumulative (non-wrapped) heading so CSS transitions never spin the wrong way at 0°/360°.
+  const smoothedCumulative = useRef<number | null>(null);
+  // Pending requestAnimationFrame handle — throttles React state updates to one per frame.
+  const rafRef = useRef<number | null>(null);
+  // Set to true once we receive a deviceorientationabsolute event, so we can ignore
+  // the redundant regular deviceorientation event that fires on the same tick.
+  const hasAbsoluteRef = useRef(false);
   const buzzedRef = useRef(false);
 
   // Load the GeoJSON once.
@@ -108,17 +116,44 @@ export default function Compass() {
 
   function handleOrientation(e: Event) {
     const ev = e as CompassDeviceOrientationEvent;
+
+    // Track whether absolute events are arriving so we can ignore the redundant
+    // regular deviceorientation event that fires on the same sensor tick (Android).
+    if (e.type === "deviceorientationabsolute") hasAbsoluteRef.current = true;
+    if (e.type === "deviceorientation" && hasAbsoluteRef.current) return;
+
     let h: number | null = null;
     if (typeof ev.webkitCompassHeading === "number") {
-      h = ev.webkitCompassHeading;
+      h = ev.webkitCompassHeading;                       // iOS — already true-north
     } else if (ev.absolute && typeof ev.alpha === "number") {
-      h = (360 - ev.alpha) % 360;
+      h = (360 - ev.alpha) % 360;                        // Android absolute
+    } else if (typeof ev.alpha === "number") {
+      h = (360 - ev.alpha) % 360;                        // non-absolute fallback
     }
     if (h == null) return;
-    const s = smoothedHeading.current;
-    smoothedHeading.current =
-      s == null ? h : s + HEADING_SMOOTH * (((h - s + 540) % 360) - 180);
-    setHeading((smoothedHeading.current + 360) % 360);
+
+    // Update cumulative (non-wrapped) heading.
+    // Using cumulative degrees instead of 0-360 means CSS transitions never spin
+    // the dial the wrong way when crossing the 0°/360° boundary.
+    const cum = smoothedCumulative.current;
+    if (cum == null) {
+      smoothedCumulative.current = h;
+    } else {
+      // Shortest angular difference from current smoothed position to new raw reading.
+      const wrapped = ((cum % 360) + 360) % 360;
+      const diff = ((h - wrapped + 540) % 360) - 180;
+      smoothedCumulative.current = cum + HEADING_SMOOTH * diff;
+    }
+
+    // Throttle React state updates to one per animation frame (~60 fps max).
+    // Without this, 60 Hz sensor events trigger 60 React re-renders per second,
+    // each one interrupting the CSS transition mid-way and causing the "two lines" jitter.
+    if (rafRef.current == null) {
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        setHeading(smoothedCumulative.current);
+      });
+    }
   }
 
   function startOrientation() {
@@ -152,12 +187,16 @@ export default function Compass() {
     return () => {
       window.removeEventListener("deviceorientation", handleOrientation, true);
       window.removeEventListener("deviceorientationabsolute", handleOrientation, true);
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Dial counter-rotates to device heading (so N tick tracks real north);
-  // needle points to the shop's true bearing within that rotated dial.
+  // Dial counter-rotates to device heading (so N tick tracks real north).
+  // heading is cumulative (can exceed 360 or go negative) so the CSS transition
+  // always takes the short arc and never spins backwards through north.
   const dialRot = heading != null ? -heading : 0;
+  // Wrap back to 0-359 only for the human-readable stats display.
+  const displayHeading = heading != null ? Math.round(((heading % 360) + 360) % 360) : null;
   const needleRot = nearest ? nearest.bearing : 0;
   const live = nearest && heading != null;
   const dist = nearest?.distance;
@@ -214,7 +253,7 @@ export default function Compass() {
       <div className="stats">
         <div className="stat">
           <span className="k">HEADING</span>
-          <span className="v">{heading != null ? `${Math.round(heading)}°` : "—"}</span>
+          <span className="v">{displayHeading != null ? `${displayHeading}°` : "—"}</span>
         </div>
         <div className="stat">
           <span className="k">BEARING</span>
