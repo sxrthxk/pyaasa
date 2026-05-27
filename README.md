@@ -11,6 +11,14 @@ npm install
 npm run dev      # http://localhost:3000
 ```
 
+Or if you want https (useful for testing on mobile on local network)
+
+```bash
+npm run dev:https      # https://localhost:3000
+```
+
+Note: If this fails for some reason on Windows 11 when running it first time, use elevated shell for the first run (some issue with mkcert)
+
 Deploy by pushing to GitHub and importing into Vercel — HTTPS (required for compass + GPS) and analytics come free.
 
 > **Note:** the compass and location only work over HTTPS (so: `localhost` or Vercel, not a raw file). On iOS you'll get a "tap to enable compass" button — that's Safari requiring a user gesture before granting orientation access.
