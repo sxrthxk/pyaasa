@@ -1,7 +1,8 @@
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import RegisterSW from "./RegisterSW";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Nearest Shop Compass",
   description: "Points you toward the nearest liquor shop in Dewas.",
   manifest: "/manifest.json",
@@ -12,14 +13,18 @@ export const metadata = {
   },
 };
 
-export const viewport = {
+export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   themeColor: "#111111",
 };
 
-export default function RootLayout({ children }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
       <head>

@@ -1,9 +1,36 @@
 // All angles in degrees on the public API; radians used internally.
-const toRad = (d) => (d * Math.PI) / 180;
-const toDeg = (r) => (r * 180) / Math.PI;
+const toRad = (d: number): number => (d * Math.PI) / 180;
+const toDeg = (r: number): number => (r * 180) / Math.PI;
+
+export interface ShopProperties {
+  name: string;
+  [key: string]: unknown;
+}
+
+export interface ShopGeometry {
+  type: "Point";
+  coordinates: [number, number]; // [lng, lat]
+}
+
+export interface ShopFeature {
+  type: "Feature";
+  geometry: ShopGeometry;
+  properties: ShopProperties;
+}
+
+export interface NearestResult {
+  feature: ShopFeature;
+  distance: number;
+  bearing: number;
+}
 
 // Great-circle distance in meters between two [lat, lng] points.
-export function haversineMeters(lat1, lng1, lat2, lng2) {
+export function haversineMeters(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number {
   const R = 6371000;
   const dLat = toRad(lat2 - lat1);
   const dLng = toRad(lng2 - lng1);
@@ -14,7 +41,12 @@ export function haversineMeters(lat1, lng1, lat2, lng2) {
 }
 
 // Initial bearing (0=N, 90=E) from point 1 to point 2, in degrees [0,360).
-export function bearingDegrees(lat1, lng1, lat2, lng2) {
+export function bearingDegrees(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number {
   const dLng = toRad(lng2 - lng1);
   const y = Math.sin(dLng) * Math.cos(toRad(lat2));
   const x =
@@ -25,8 +57,12 @@ export function bearingDegrees(lat1, lng1, lat2, lng2) {
 
 // Brute-force nearest. features = GeoJSON features with [lng,lat] coords.
 // Returns { feature, distance, bearing } or null.
-export function findNearest(lat, lng, features) {
-  let best = null;
+export function findNearest(
+  lat: number,
+  lng: number,
+  features: ShopFeature[]
+): NearestResult | null {
+  let best: NearestResult | null = null;
   for (const f of features) {
     const [flng, flat] = f.geometry.coordinates; // GeoJSON is [lng, lat]!
     const d = haversineMeters(lat, lng, flat, flng);
@@ -37,8 +73,8 @@ export function findNearest(lat, lng, features) {
   return best;
 }
 
-// Human-readable distance with the ~ prefix you wanted.
-export function fmtDistance(m) {
+// Human-readable distance with the ~ prefix.
+export function fmtDistance(m: number): string {
   if (m < 1000) return `~${Math.round(m)} m`;
   return `~${(m / 1000).toFixed(m < 10000 ? 1 : 0)} km`;
 }

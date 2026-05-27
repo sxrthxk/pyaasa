@@ -2,14 +2,21 @@
 
 import { useEffect, useRef, useState } from "react";
 import { findNearest, fmtDistance, haversineMeters } from "./geo";
+import type { ShopFeature, NearestResult } from "./geo";
 
 // Movement gate: don't recompute nearest unless the user moved more than this.
 const MOVE_GATE_M = 10;
 // Low-pass smoothing factor for the heading (0..1, higher = snappier/jitterier).
 const HEADING_SMOOTH = 0.15;
 
+interface Pos {
+  lat: number;
+  lng: number;
+  accuracy: number;
+}
+
 // Cheeky proximity copy keyed to distance (meters).
-function vibe(m) {
+function vibe(m: number | null | undefined): string {
   if (m == null) return "Locking on…";
   if (m < 15) return "You've arrived. 🍻";
   if (m < 40) return "Smell that?";
@@ -19,24 +26,34 @@ function vibe(m) {
   return "Stay strong, soldier.";
 }
 
+// Extend the standard DeviceOrientationEvent type with the webkit compass heading.
+interface CompassDeviceOrientationEvent extends DeviceOrientationEvent {
+  webkitCompassHeading?: number;
+}
+
+// iOS requires calling requestPermission before listening to orientation events.
+interface DeviceOrientationEventWithPermission extends EventTarget {
+  requestPermission?: () => Promise<"granted" | "denied">;
+}
+
 export default function Compass() {
-  const [shops, setShops] = useState([]);
-  const [pos, setPos] = useState(null); // { lat, lng, accuracy }
-  const [heading, setHeading] = useState(null); // smoothed device heading, degrees
-  const [nearest, setNearest] = useState(null);
+  const [shops, setShops] = useState<ShopFeature[]>([]);
+  const [pos, setPos] = useState<Pos | null>(null);
+  const [heading, setHeading] = useState<number | null>(null); // smoothed device heading, degrees
+  const [nearest, setNearest] = useState<NearestResult | null>(null);
   const [status, setStatus] = useState("Loading shops…");
   const [needsTap, setNeedsTap] = useState(false);
 
-  const lastCalcPos = useRef(null);
-  const smoothedHeading = useRef(null);
+  const lastCalcPos = useRef<Pos | null>(null);
+  const smoothedHeading = useRef<number | null>(null);
   const buzzedRef = useRef(false);
 
   // Load the GeoJSON once.
   useEffect(() => {
     fetch("/shops.geojson")
       .then((r) => r.json())
-      .then((g) => {
-        setShops(g.features || []);
+      .then((g: { features?: ShopFeature[] }) => {
+        setShops(g.features ?? []);
         setStatus(g.features?.length ? "" : "No shops mapped yet.");
       })
       .catch(() => setStatus("Couldn't load shops.geojson"));
@@ -72,10 +89,9 @@ export default function Compass() {
       setNearest(findNearest(pos.lat, pos.lng, shops));
     } else if (nearest) {
       const [flng, flat] = nearest.feature.geometry.coordinates;
-      setNearest((n) => ({
-        ...n,
-        distance: haversineMeters(pos.lat, pos.lng, flat, flng),
-      }));
+      setNearest((n) =>
+        n ? { ...n, distance: haversineMeters(pos.lat, pos.lng, flat, flng) } : n
+      );
     }
   }, [pos, shops]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -90,12 +106,13 @@ export default function Compass() {
     }
   }, [nearest]);
 
-  function handleOrientation(e) {
-    let h = null;
-    if (typeof e.webkitCompassHeading === "number") {
-      h = e.webkitCompassHeading;
-    } else if (e.absolute && typeof e.alpha === "number") {
-      h = (360 - e.alpha) % 360;
+  function handleOrientation(e: Event) {
+    const ev = e as CompassDeviceOrientationEvent;
+    let h: number | null = null;
+    if (typeof ev.webkitCompassHeading === "number") {
+      h = ev.webkitCompassHeading;
+    } else if (ev.absolute && typeof ev.alpha === "number") {
+      h = (360 - ev.alpha) % 360;
     }
     if (h == null) return;
     const s = smoothedHeading.current;
@@ -105,7 +122,7 @@ export default function Compass() {
   }
 
   function startOrientation() {
-    const DOE = window.DeviceOrientationEvent;
+    const DOE = window.DeviceOrientationEvent as unknown as DeviceOrientationEventWithPermission;
     if (DOE && typeof DOE.requestPermission === "function") {
       DOE.requestPermission().then((res) => {
         if (res === "granted") {
@@ -124,7 +141,9 @@ export default function Compass() {
 
   useEffect(() => {
     const DOE =
-      typeof window !== "undefined" ? window.DeviceOrientationEvent : null;
+      typeof window !== "undefined"
+        ? (window.DeviceOrientationEvent as unknown as DeviceOrientationEventWithPermission)
+        : null;
     if (DOE && typeof DOE.requestPermission === "function") {
       setNeedsTap(true);
     } else {
@@ -180,7 +199,7 @@ export default function Compass() {
               opacity: live ? 1 : 0.3,
             }}
           >
-            <span className="bottle" aria-hidden>🍾</span>
+            <span className="bottle" aria-hidden="true">🍾</span>
           </div>
           <span className="hub" />
         </div>
