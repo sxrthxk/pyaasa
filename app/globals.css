@@ -1,0 +1,262 @@
+/* ---- Type: distinctive display + clean mono, no Inter/Roboto ---- */
+@import url("https://fonts.googleapis.com/css2?family=Major+Mono+Display&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap");
+
+:root {
+  --bg: #0b0a08;
+  --panel: #18140f;
+  --ring: #3a2e1c;
+  --amber: #f0a830;
+  --amber-bright: #ffc857;
+  --amber-glow: rgba(240, 168, 48, 0.5);
+  --cream: #ece3d0;
+  --muted: #8a7d63;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+.screen {
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  padding: 28px 20px 36px;
+  background:
+    radial-gradient(120% 80% at 50% 18%, #1a150d 0%, var(--bg) 60%);
+  color: var(--cream);
+  font-family: "Bricolage Grotesque", sans-serif;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* soft amber atmosphere behind everything */
+.glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(50% 40% at 50% 42%, var(--amber-glow), transparent 70%);
+  opacity: 0.12;
+  pointer-events: none;
+  filter: blur(20px);
+}
+
+.masthead {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  z-index: 1;
+}
+.brand {
+  font-family: "Major Mono Display", monospace;
+  font-size: 30px;
+  letter-spacing: 4px;
+  color: var(--amber-bright);
+  text-shadow: 0 0 24px var(--amber-glow);
+}
+.tagline {
+  font-size: 12px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.enable {
+  z-index: 2;
+  padding: 13px 22px;
+  border: 1px solid var(--amber);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--amber-bright);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* ---- The dial ---- */
+.dial-wrap {
+  position: relative;
+  width: 280px;
+  height: 280px;
+  display: grid;
+  place-items: center;
+  z-index: 1;
+}
+.dial-wrap::before {
+  /* outer amber ring with depth */
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background:
+    conic-gradient(from 0deg, #5a4423, #2a2113, #5a4423, #2a2113, #5a4423);
+  padding: 6px;
+  box-shadow:
+    0 0 0 1px #000 inset,
+    0 20px 60px rgba(0, 0, 0, 0.7),
+    0 0 50px var(--amber-glow);
+  transition: box-shadow 0.4s ease;
+}
+.dial-wrap.close::before {
+  box-shadow:
+    0 0 0 1px #000 inset,
+    0 20px 60px rgba(0, 0, 0, 0.7),
+    0 0 70px var(--amber-bright);
+}
+
+.dial {
+  position: relative;
+  width: 252px;
+  height: 252px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 38%, #211a10 0%, #0d0a06 78%);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.6) inset;
+  transition: transform 0.18s linear;
+  display: grid;
+  place-items: center;
+}
+
+.ticks { position: absolute; inset: 0; }
+.tick {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1px;
+  height: 9px;
+  margin-left: -0.5px;
+  margin-top: -4.5px;
+  background: var(--muted);
+  transform-origin: 50% 50%;
+  opacity: 0.55;
+}
+.tick.major {
+  width: 2px;
+  height: 15px;
+  margin-left: -1px;
+  margin-top: -7.5px;
+  background: var(--cream);
+  opacity: 0.9;
+}
+
+.cardinal {
+  position: absolute;
+  font-family: "Major Mono Display", monospace;
+  font-size: 15px;
+  color: var(--cream);
+}
+.cardinal.n { top: 20px; color: var(--amber-bright); }
+.cardinal.s { bottom: 20px; }
+.cardinal.e { right: 22px; }
+.cardinal.w { left: 22px; }
+
+/* needle: a long amber pointer toward the shop, bottle at the tip */
+.needle {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: start center;
+  transform-origin: 50% 50%;
+  transition: transform 0.18s linear, opacity 0.3s ease;
+}
+.needle::before {
+  content: "";
+  position: absolute;
+  top: 44px;
+  left: 50%;
+  width: 4px;
+  height: 86px;
+  margin-left: -2px;
+  background: linear-gradient(180deg, var(--amber-bright), var(--amber) 60%, transparent);
+  border-radius: 2px;
+  box-shadow: 0 0 12px var(--amber-glow);
+}
+.bottle {
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 26px;
+  filter: drop-shadow(0 0 6px var(--amber-glow));
+}
+
+.hub {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, var(--amber-bright), #6b4f22);
+  box-shadow: 0 0 0 3px #0d0a06, 0 2px 6px rgba(0,0,0,0.8);
+}
+
+/* ---- Readout ---- */
+.readout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  z-index: 1;
+}
+.distance {
+  font-size: 58px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -1px;
+  color: var(--cream);
+  text-shadow: 0 0 30px rgba(236, 227, 208, 0.25);
+}
+.vibe {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--amber-bright);
+  letter-spacing: 0.3px;
+}
+.shopname {
+  font-size: 13px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  text-align: center;
+  max-width: 280px;
+}
+
+/* ---- Stats strip ---- */
+.stats {
+  display: flex;
+  align-items: stretch;
+  gap: 1px;
+  background: var(--ring);
+  border: 1px solid var(--ring);
+  border-radius: 14px;
+  overflow: hidden;
+  z-index: 1;
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 11px 20px;
+  background: var(--panel);
+}
+.stat .k {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--muted);
+}
+.stat .v {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--cream);
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+  z-index: 1;
+}

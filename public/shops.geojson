@@ -1,0 +1,83 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ujjain Rd Wine Shop"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.0402448,
+          22.9785266
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Chandana Wine Shop"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.0221561,
+          22.9639845
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Keladevi Wine Shop"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.0391292,
+          22.9540094
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Petrol Pump Wine Shop"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.0543364,
+          22.9673151
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Ram Nagar Wine Shop"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.0456890670393,
+          22.96117829246979
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Bawadiya Wine Shop"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          76.0289889,
+          22.9432901
+        ]
+      }
+    }
+  ]
+}
