@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import RegisterSW from "./RegisterSW";
+import { Analytics } from "@vercel/analytics/next"
 
 export const metadata: Metadata = {
   title: "Nearest Shop Compass",
@@ -33,6 +34,7 @@ export default function RootLayout({
       <body style={{ margin: 0 }}>
         {children}
         <RegisterSW />
+        <Analytics />
       </body>
     </html>
   );
