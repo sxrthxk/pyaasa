@@ -6,10 +6,18 @@ import type { ShopFeature, NearestResult } from "./geo";
 
 // Movement gate: don't recompute nearest unless the user moved more than this.
 const MOVE_GATE_M = 10;
-// Low-pass smoothing factor for the heading (0..1, higher = snappier/jitterier).
-// Keep this low: 0.05 passes only ~5% of each raw reading through per sensor tick,
-// which kills the 1-2° iOS sensor noise without noticeably lagging the display.
-const HEADING_SMOOTH = 0.05;
+// Heading smoothing is handled by the CSS `transition` on .dial, NOT here.
+// We pass the raw (already-clean) heading straight through. Stacking a JS
+// low-pass on top of the CSS transition makes two smoothers fight, causing
+// the needle to lag and overshoot for seconds after a fast turn. One smoother.
+const HEADING_SMOOTH = 1;
+// Ignore sensor jitter smaller than this many degrees (dead zone).
+const HEADING_DEAD_ZONE = 1;
+// DIAGNOSTIC: set false to remove the on-screen sensor debug panel.
+const DEBUG = true;
+// Throttle the React stat-display update (NOT the visual rotation) to ~5/sec.
+// The dial itself updates every sensor tick via direct DOM writes (see below).
+const STAT_UPDATE_MS = 200;
 
 interface Pos {
   lat: number;
@@ -24,16 +32,14 @@ function vibe(m: number | null | undefined): string {
   if (m < 40) return "Smell that?";
   if (m < 120) return "Nearly there.";
   if (m < 400) return "Getting warmer.";
-  if (m < 1500) return "A short pilgrimage.";
+  if (m < 1500) return "A short tour.";
   return "Stay strong, soldier.";
 }
 
-// Extend the standard DeviceOrientationEvent type with the webkit compass heading.
 interface CompassDeviceOrientationEvent extends DeviceOrientationEvent {
   webkitCompassHeading?: number;
 }
 
-// iOS requires calling requestPermission before listening to orientation events.
 interface DeviceOrientationEventWithPermission extends EventTarget {
   requestPermission?: () => Promise<"granted" | "denied">;
 }
@@ -41,20 +47,35 @@ interface DeviceOrientationEventWithPermission extends EventTarget {
 export default function Compass() {
   const [shops, setShops] = useState<ShopFeature[]>([]);
   const [pos, setPos] = useState<Pos | null>(null);
-  const [heading, setHeading] = useState<number | null>(null); // smoothed device heading, degrees
+  // headingDisplay drives ONLY the stats text — throttled, low-frequency.
+  const [headingDisplay, setHeadingDisplay] = useState<number | null>(null);
   const [nearest, setNearest] = useState<NearestResult | null>(null);
   const [status, setStatus] = useState("Loading shops…");
   const [needsTap, setNeedsTap] = useState(false);
+  const [hasHeading, setHasHeading] = useState(false);
+
+  // --- Refs for the direct-DOM visual path (the Fix) -----------------------
+  // The dial element. We write its transform directly from the sensor handler,
+  // bypassing React render + requestAnimationFrame entirely. This is the fix
+  // for iOS Safari throttling rAF until the first touch: the sensor event fires
+  // regardless of rAF state, so writing transform here keeps the dial live
+  // before any user interaction. It also removes 60/sec React re-renders.
+  const dialRef = useRef<HTMLDivElement | null>(null);
+  const needleRef = useRef<HTMLDivElement | null>(null);
+  const tickCountRef = useRef(0);
+  const firstTickTs = useRef(0);
+  const touchedRef = useRef(false);
 
   const lastCalcPos = useRef<Pos | null>(null);
-  // Cumulative (non-wrapped) heading so CSS transitions never spin the wrong way at 0°/360°.
+  // Cumulative (non-wrapped) heading so transitions never spin the wrong way at 0/360.
   const smoothedCumulative = useRef<number | null>(null);
-  // Pending requestAnimationFrame handle — throttles React state updates to one per frame.
-  const rafRef = useRef<number | null>(null);
-  // Set to true once we receive a deviceorientationabsolute event, so we can ignore
-  // the redundant regular deviceorientation event that fires on the same tick.
+  // Latest shop bearing, kept in a ref so the orientation handler (a stable
+  // closure) can read it without being re-bound on every nearest change.
+  const bearingRef = useRef<number>(0);
+  const liveRef = useRef<boolean>(false);
   const hasAbsoluteRef = useRef(false);
   const buzzedRef = useRef(false);
+  const lastStatTs = useRef(0);
 
   // Load the GeoJSON once.
   useEffect(() => {
@@ -103,6 +124,20 @@ export default function Compass() {
     }
   }, [pos, shops]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Keep the bearing ref + needle transform in sync whenever nearest changes.
+  // The needle's bearing changes slowly (only when you move), so driving it from
+  // React here is fine; we still write the ref so the handler can compose if needed.
+  useEffect(() => {
+    if (nearest) {
+      bearingRef.current = nearest.bearing;
+      liveRef.current = hasHeading;
+      if (needleRef.current) {
+        needleRef.current.style.transform = `rotate(${nearest.bearing}deg)`;
+        needleRef.current.style.opacity = hasHeading ? "1" : "0.3";
+      }
+    }
+  }, [nearest, hasHeading]);
+
   // Haptic buzz once when you cross into "arrived" range.
   useEffect(() => {
     if (!nearest) return;
@@ -117,8 +152,6 @@ export default function Compass() {
   function handleOrientation(e: Event) {
     const ev = e as CompassDeviceOrientationEvent;
 
-    // Track whether absolute events are arriving so we can ignore the redundant
-    // regular deviceorientation event that fires on the same sensor tick (Android).
     if (e.type === "deviceorientationabsolute") hasAbsoluteRef.current = true;
     if (e.type === "deviceorientation" && hasAbsoluteRef.current) return;
 
@@ -132,27 +165,35 @@ export default function Compass() {
     }
     if (h == null) return;
 
-    // Update cumulative (non-wrapped) heading.
-    // Using cumulative degrees instead of 0-360 means CSS transitions never spin
-    // the dial the wrong way when crossing the 0°/360° boundary.
+    // Update cumulative (non-wrapped) heading via shortest-arc low-pass.
     const cum = smoothedCumulative.current;
+    let next: number;
     if (cum == null) {
-      smoothedCumulative.current = h;
+      next = h;
     } else {
-      // Shortest angular difference from current smoothed position to new raw reading.
       const wrapped = ((cum % 360) + 360) % 360;
       const diff = ((h - wrapped + 540) % 360) - 180;
-      smoothedCumulative.current = cum + HEADING_SMOOTH * diff;
+      if (Math.abs(diff) <= HEADING_DEAD_ZONE) return;   // ignore jitter ≤ 2°
+      next = cum + HEADING_SMOOTH * diff;
+    }
+    smoothedCumulative.current = next;
+
+    // This runs on the sensor tick, independent of requestAnimationFrame, so
+    // iOS Safari's pre-interaction rAF throttle can't stall the visual update.
+    if (dialRef.current) {
+      dialRef.current.style.transform = `rotate(${-next}deg)`;
+    }
+    if (!liveRef.current) {
+      liveRef.current = true;
+      if (needleRef.current) needleRef.current.style.opacity = "1";
     }
 
-    // Throttle React state updates to one per animation frame (~60 fps max).
-    // Without this, 60 Hz sensor events trigger 60 React re-renders per second,
-    // each one interrupting the CSS transition mid-way and causing the "two lines" jitter.
-    if (rafRef.current == null) {
-      rafRef.current = requestAnimationFrame(() => {
-        rafRef.current = null;
-        setHeading(smoothedCumulative.current);
-      });
+    // React state is updated only for the slow stats text, time-throttled.
+    const now = Date.now();
+    if (now - lastStatTs.current >= STAT_UPDATE_MS) {
+      lastStatTs.current = now;
+      setHeadingDisplay(((next % 360) + 360) % 360);
+      if (!hasHeading) setHasHeading(true);
     }
   }
 
@@ -184,21 +225,18 @@ export default function Compass() {
     } else {
       startOrientation();
     }
+    // DIAGNOSTIC: record the first touch so we can see if ticks correlate with it.
+    const markTouch = () => {
+      touchedRef.current = true;
+    };
+    window.addEventListener("touchstart", markTouch, { passive: true });
     return () => {
       window.removeEventListener("deviceorientation", handleOrientation, true);
       window.removeEventListener("deviceorientationabsolute", handleOrientation, true);
-      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+      window.removeEventListener("touchstart", markTouch);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Dial counter-rotates to device heading (so N tick tracks real north).
-  // heading is cumulative (can exceed 360 or go negative) so the CSS transition
-  // always takes the short arc and never spins backwards through north.
-  const dialRot = heading != null ? -heading : 0;
-  // Wrap back to 0-359 only for the human-readable stats display.
-  const displayHeading = heading != null ? Math.round(((heading % 360) + 360) % 360) : null;
-  const needleRot = nearest ? nearest.bearing : 0;
-  const live = nearest && heading != null;
   const dist = nearest?.distance;
 
   return (
@@ -216,7 +254,9 @@ export default function Compass() {
       )}
 
       <div className={`dial-wrap ${dist != null && dist < 40 ? "close" : ""}`}>
-        <div className="dial" style={{ transform: `rotate(${dialRot}deg)` }}>
+        {/* dial transform is written directly via dialRef — no inline style here
+            so React never overwrites the imperative DOM update on re-render. */}
+        <div className="dial" ref={dialRef}>
           <div className="ticks">
             {Array.from({ length: 72 }).map((_, i) => (
               <span
@@ -230,14 +270,7 @@ export default function Compass() {
           <span className="cardinal e">E</span>
           <span className="cardinal s">S</span>
           <span className="cardinal w">W</span>
-          {/* needle rotates within the (already heading-rotated) dial */}
-          <div
-            className="needle"
-            style={{
-              transform: `rotate(${needleRot}deg)`,
-              opacity: live ? 1 : 0.3,
-            }}
-          >
+          <div className="needle" ref={needleRef} style={{ opacity: 0.3 }}>
             <span className="bottle" aria-hidden="true">🍾</span>
           </div>
           <span className="hub" />
@@ -253,7 +286,7 @@ export default function Compass() {
       <div className="stats">
         <div className="stat">
           <span className="k">HEADING</span>
-          <span className="v">{displayHeading != null ? `${displayHeading}°` : "—"}</span>
+          <span className="v">{headingDisplay != null ? `${Math.round(headingDisplay)}°` : "—"}</span>
         </div>
         <div className="stat">
           <span className="k">BEARING</span>
@@ -265,7 +298,7 @@ export default function Compass() {
         </div>
       </div>
 
-      {heading == null && !needsTap && nearest && (
+      {!hasHeading && !needsTap && nearest && (
         <p className="hint">Wave your phone in a figure-8 to calibrate.</p>
       )}
     </main>

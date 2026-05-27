@@ -116,7 +116,9 @@ html, body { margin: 0; padding: 0; }
   background:
     radial-gradient(circle at 50% 38%, #211a10 0%, #0d0a06 78%);
   box-shadow: 0 8px 30px rgba(0,0,0,0.6) inset;
-  transition: transform 0.18s linear;
+  /* Sole heading smoother (JS low-pass is disabled). ease-out glides to the
+     latest reading without the mechanical feel of linear; ~0.12s stays snappy. */
+  transition: transform 0.18s ease-out;
   display: grid;
   place-items: center;
 }
