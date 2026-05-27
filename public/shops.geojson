@@ -78,6 +78,46 @@
           22.9432901
         ]
       }
-    }
+    },
+    {
+  "type": "Feature",
+  "properties": {
+    "name": "Nipania Wine Shop"
+  },
+  "geometry": {
+    "type": "Point",
+    "coordinates": [
+      75.9356473,
+      22.7726682
+    ]
+  }
+},
+{
+  "type": "Feature",
+  "properties": {
+    "name": "Gulmohar Wine Shop"
+  },
+  "geometry": {
+    "type": "Point",
+    "coordinates": [
+      76.0024795,
+      22.9170382
+    ]
+  }
+},
+{
+  "type": "Feature",
+  "properties": {
+    "name": "Bhopal Chauraha Wine Shop"
+  },
+  "geometry": {
+    "type": "Point",
+    "coordinates": [
+      76.0866586,
+      22.9685461
+    ]
+  }
+}
+    
   ]
 }
