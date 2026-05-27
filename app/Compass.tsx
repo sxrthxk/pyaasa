@@ -243,7 +243,7 @@ export default function Compass() {
     <main className="screen">
       <div className="glow" />
       <header className="masthead">
-        <span className="brand">PYAASA</span>
+        <span className="brand">PYAASA 🍺</span>
         <span className="tagline">a compass for the thirsty</span>
       </header>
 
@@ -270,9 +270,7 @@ export default function Compass() {
           <span className="cardinal e">E</span>
           <span className="cardinal s">S</span>
           <span className="cardinal w">W</span>
-          <div className="needle" ref={needleRef} style={{ opacity: 0.3 }}>
-            <span className="bottle" aria-hidden="true">🍾</span>
-          </div>
+          <div className="needle" ref={needleRef} style={{ opacity: 0.3 }} />
           <span className="hub" />
         </div>
       </div>

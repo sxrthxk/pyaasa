@@ -1,19 +1,22 @@
-/* ---- Type: distinctive display + clean mono, no Inter/Roboto ---- */
-@import url("https://fonts.googleapis.com/css2?family=Major+Mono+Display&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap");
+/* ---- Type: Major Mono for brand; SF Pro system stack for body ---- */
+@import url("https://fonts.googleapis.com/css2?family=Major+Mono+Display&display=swap");
 
 :root {
-  --bg: #0b0a08;
-  --panel: #18140f;
-  --ring: #3a2e1c;
-  --amber: #f0a830;
-  --amber-bright: #ffc857;
-  --amber-glow: rgba(240, 168, 48, 0.5);
-  --cream: #ece3d0;
-  --muted: #8a7d63;
+  --bg:          #000000;
+  --panel:       #1c1c1e;
+  --ring:        #3a3a3c;
+  --red:         #ff3b30;
+  --red-dark:    #c0392b;
+  --red-glow:    rgba(255, 59, 48, 0.45);
+  --white:       #ffffff;
+  --silver:      #aeaeb2;
+  --silver-lo:   #48484a;
+  --silver-mid:  #98989d;
+  --silver-hi:   #f2f2f7;
+  --muted:       #707074;
 }
 
 * { box-sizing: border-box; }
-
 html, body { margin: 0; padding: 0; }
 
 .screen {
@@ -25,24 +28,24 @@ html, body { margin: 0; padding: 0; }
   justify-content: center;
   gap: 22px;
   padding: 28px 20px 36px;
-  background:
-    radial-gradient(120% 80% at 50% 18%, #1a150d 0%, var(--bg) 60%);
-  color: var(--cream);
-  font-family: "Bricolage Grotesque", sans-serif;
+  background: #000;
+  color: var(--white);
+  font-family: -apple-system, "SF Pro Display", "SF Pro Text",
+               "Helvetica Neue", Helvetica, Arial, sans-serif;
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* soft amber atmosphere behind everything */
+/* Very subtle ambient depth — no coloured glow */
 .glow {
   position: absolute;
   inset: 0;
-  background: radial-gradient(50% 40% at 50% 42%, var(--amber-glow), transparent 70%);
-  opacity: 0.12;
+  background: radial-gradient(50% 40% at 50% 45%,
+    rgba(50, 50, 55, 0.55), transparent 70%);
   pointer-events: none;
-  filter: blur(20px);
 }
 
+/* ---- Masthead ---- */
 .masthead {
   display: flex;
   flex-direction: column;
@@ -51,33 +54,36 @@ html, body { margin: 0; padding: 0; }
   z-index: 1;
 }
 .brand {
-  font-family: "Major Mono Display", monospace;
-  font-size: 30px;
-  letter-spacing: 4px;
-  color: var(--amber-bright);
-  text-shadow: 0 0 24px var(--amber-glow);
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--white);
 }
 .tagline {
-  font-size: 12px;
-  letter-spacing: 3px;
+  font-size: 11px;
+  letter-spacing: 2px;
   text-transform: uppercase;
   color: var(--muted);
 }
 
+/* ---- Enable button ---- */
 .enable {
   z-index: 2;
-  padding: 13px 22px;
-  border: 1px solid var(--amber);
+  padding: 13px 28px;
+  border: 1.5px solid var(--red);
   border-radius: 999px;
   background: transparent;
-  color: var(--amber-bright);
+  color: var(--white);
   font-family: inherit;
   font-size: 15px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  cursor: pointer;
 }
 
-/* ---- The dial ---- */
+/* ================================================================
+   THE DIAL
+   ================================================================ */
 .dial-wrap {
   position: relative;
   width: 280px;
@@ -86,117 +92,136 @@ html, body { margin: 0; padding: 0; }
   place-items: center;
   z-index: 1;
 }
-.dial-wrap::before {
-  /* outer amber ring with depth */
+
+/* Machined metallic outer ring — conic-gradient mimics angled light */
+/* .dial-wrap::before {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  background:
-    conic-gradient(from 0deg, #5a4423, #2a2113, #5a4423, #2a2113, #5a4423);
-  padding: 6px;
-  box-shadow:
-    0 0 0 1px #000 inset,
-    0 20px 60px rgba(0, 0, 0, 0.7),
-    0 0 50px var(--amber-glow);
-  transition: box-shadow 0.4s ease;
-}
+  background: conic-gradient(
+    var(--ring) 0 60deg,
+    var(--ring) 60deg 120deg,
+    var(--ring) 120deg 180deg,
+    var(--ring) 180deg 240deg,
+    var(--ring) 240deg 300deg,
+    var(--ring) 300deg 360deg
+  );
+} */
+
+/* Proximity: subtle red halo */
 .dial-wrap.close::before {
   box-shadow:
-    0 0 0 1px #000 inset,
-    0 20px 60px rgba(0, 0, 0, 0.7),
-    0 0 70px var(--amber-bright);
+    0 0 0 1px rgba(255, 255, 255, 0.14),
+    0 24px 80px rgba(0, 0, 0, 0.85),
+    0 0 50px var(--red-glow);
 }
 
+/* Dial face — sits on top of the ring via z-index */
 .dial {
   position: relative;
-  width: 252px;
-  height: 252px;
+  z-index: 1;
+  width: 248px;
+  height: 248px;
   border-radius: 50%;
-  background:
-    radial-gradient(circle at 50% 38%, #211a10 0%, #0d0a06 78%);
-  box-shadow: 0 8px 30px rgba(0,0,0,0.6) inset;
-  /* Sole heading smoother (JS low-pass is disabled). ease-out glides to the
-     latest reading without the mechanical feel of linear; ~0.12s stays snappy. */
+  /* background: radial-gradient(circle at 50% 40%,
+    #2c2c2e 0%, #111111 50%, #000000 72%); */
+  /* Layered outward shadows paint two thin inner-ring bands over the silver */
   transition: transform 0.18s ease-out;
   display: grid;
   place-items: center;
 }
 
+/* ---- Tick ring ---- */
 .ticks { position: absolute; inset: 0; }
 .tick {
   position: absolute;
   top: 50%;
   left: 50%;
   width: 1px;
-  height: 9px;
+  height: 8px;
   margin-left: -0.5px;
-  margin-top: -4.5px;
-  background: var(--muted);
+  margin-top: -4px;
+  background: var(--silver);
   transform-origin: 50% 50%;
   opacity: 0.55;
 }
 .tick.major {
   width: 2px;
-  height: 15px;
+  height: 14px;
   margin-left: -1px;
-  margin-top: -7.5px;
-  background: var(--cream);
-  opacity: 0.9;
+  margin-top: -7px;
+  background: var(--white);
+  opacity: 0.88;
 }
 
+/* ---- Cardinal letters ---- */
 .cardinal {
   position: absolute;
-  font-family: "Major Mono Display", monospace;
-  font-size: 15px;
-  color: var(--cream);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0;
+  color: var(--white);
 }
-.cardinal.n { top: 20px; color: var(--amber-bright); }
-.cardinal.s { bottom: 20px; }
-.cardinal.e { right: 22px; }
-.cardinal.w { left: 22px; }
+.cardinal.n { top: 1%;    color: var(--red); }
+.cardinal.s { bottom: 1%; }
+.cardinal.e { right: 4%; }
+.cardinal.w { left: 2%;  }
 
-/* needle: a long amber pointer toward the shop, bottle at the tip */
+/* ================================================================
+   NEEDLE — red (pointing toward target) / white (tail)
+   Classic Apple compass diamond shape, pure CSS.
+   ================================================================ */
 .needle {
   position: absolute;
   width: 100%;
   height: 100%;
-  display: grid;
-  place-items: start center;
   transform-origin: 50% 50%;
   transition: transform 0.18s linear, opacity 0.3s ease;
 }
+
+/* Red pointing half — triangle apex up */
 .needle::before {
   content: "";
   position: absolute;
-  top: 44px;
-  left: 50%;
-  width: 4px;
-  height: 86px;
-  margin-left: -2px;
-  background: linear-gradient(180deg, var(--amber-bright), var(--amber) 60%, transparent);
-  border-radius: 2px;
-  box-shadow: 0 0 12px var(--amber-glow);
-}
-.bottle {
-  position: absolute;
-  top: 22px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 26px;
-  filter: drop-shadow(0 0 6px var(--amber-glow));
+  top:       calc(50% - 72px);
+  left:      calc(50% - 3px);
+  width:     6px;
+  height:    72px;
+  background: var(--red);
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+  filter: drop-shadow(0 0 5px var(--red-glow));
 }
 
+/* White tail half — triangle apex down */
+.needle::after {
+  content: "";
+  position: absolute;
+  top:  50%;
+  left: calc(50% - 3px);
+  width:  6px;
+  height: 64px;
+  background: #e5e5ea;
+  clip-path: polygon(0% 0%, 100% 0%, 50% 100%);
+}
+
+/* Hide the bottle emoji — replaced by CSS needle above */
+.bottle { display: none; }
+
+/* ---- Center hub ---- */
 .hub {
   position: absolute;
-  width: 16px;
-  height: 16px;
+  z-index: 2;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: radial-gradient(circle at 40% 35%, var(--amber-bright), #6b4f22);
-  box-shadow: 0 0 0 3px #0d0a06, 0 2px 6px rgba(0,0,0,0.8);
+  background: radial-gradient(circle at 36% 34%, var(--silver-hi), #3a3a3c);
+  box-shadow: 0 0 0 2px #000, 0 2px 6px rgba(0, 0, 0, 0.9);
 }
 
-/* ---- Readout ---- */
+/* ================================================================
+   READOUT
+   ================================================================ */
 .readout {
   display: flex;
   flex-direction: column;
@@ -205,18 +230,17 @@ html, body { margin: 0; padding: 0; }
   z-index: 1;
 }
 .distance {
-  font-size: 58px;
-  font-weight: 800;
+  font-size: 48px;
+  font-weight: 700;
   line-height: 1;
   letter-spacing: -1px;
-  color: var(--cream);
-  text-shadow: 0 0 30px rgba(236, 227, 208, 0.25);
+  color: var(--white);
 }
 .vibe {
   font-size: 16px;
-  font-weight: 600;
-  color: var(--amber-bright);
-  letter-spacing: 0.3px;
+  font-weight: 500;
+  color: var(--red);
+  letter-spacing: 0.2px;
 }
 .shopname {
   font-size: 13px;
@@ -226,7 +250,9 @@ html, body { margin: 0; padding: 0; }
   max-width: 280px;
 }
 
-/* ---- Stats strip ---- */
+/* ================================================================
+   STATS STRIP
+   ================================================================ */
 .stats {
   display: flex;
   align-items: stretch;
@@ -248,14 +274,16 @@ html, body { margin: 0; padding: 0; }
 .stat .k {
   font-size: 10px;
   letter-spacing: 2px;
+  text-transform: uppercase;
   color: var(--muted);
 }
 .stat .v {
   font-size: 17px;
-  font-weight: 700;
-  color: var(--cream);
+  font-weight: 600;
+  color: var(--white);
 }
 
+/* ---- Hint ---- */
 .hint {
   font-size: 12px;
   color: var(--muted);
